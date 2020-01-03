@@ -9,13 +9,13 @@ sudo apt upgrade
 ```
 Then, to ensure that python is up to date, run `sudo apt install python3`.
 
-Next you must intall pip. To do this use `sudo apt install python3-pip`.
+Next you must install pip. To do this use `sudo apt install python3-pip`.
 
 Now you will use pip to install OpenCV by typing `sudo pip3 install opencv-contrib-python`
 
 To ensure that everything was installed correctly, we will create a script that outputs the installed version of OpenCV. Use `python3` to open the python interpreter.
 
-Once in the python interpeter, type:
+Once in the python interpreter, type:
 ```
 import cv2
 cv2.__version__
