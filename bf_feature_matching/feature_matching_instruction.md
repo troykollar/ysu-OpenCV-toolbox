@@ -38,7 +38,7 @@ Using this ORB object, we will gather all the keypoints and descriptors from bot
 kp1, des1 = orb.detectAndCompute(img1,None)
 kp2, des2 = orb.detectAndCompute(img2,None)
 ```
-Next we create a BFMatcher object with `bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)`. It's arguments are `normType` which specifies the type of distance measurement to be used. In our case `cv2.NORM_HAMMING` since that is the type of distance measurement used in ORB feature detection. The distance measurement should always match that of your feature detection. The other arguemtn crossCheck is `True` which will give more accurate results.
+Next we create a BFMatcher object with `bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)`. It's arguments are `normType` which specifies the type of distance measurement to be used. In our case `cv2.NORM_HAMMING` since that is the type of distance measurement used in ORB feature detection. The distance measurement should always match that of your feature detection. The other argument, crossCheck is `True`. This means that for keypoints to be considered a match, they must match both ways (i.e. the point on img1 matches the point on img2, AND the same point on img2 matches the same point on img1). This works as an alternative to Lowe's ratio test that would be used if using SIFT method. This will give more accurate results.
 
 Now we'll use the bf object to match the descriptors, and sort the matches.
 ```
