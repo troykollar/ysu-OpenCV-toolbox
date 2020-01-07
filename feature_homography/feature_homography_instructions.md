@@ -11,53 +11,103 @@ from matplotlib import pyplot as plt
 
 MIN_MATCH_COUNT = 10
 
-img1 = cv2.imread('box.png', cv2.IMREAD_GRAYSCALE)
-img2 = cv2.imread('box_in_scene.png', cv2.IMREAD_GRAYSCALE)
+queryImg = cv2.imread('box.png', cv2.IMREAD_GRAYSCALE)
+trainImg = cv2.imread('box_in_scene.png', cv2.IMREAD_GRAYSCALE)
 
 #ORB detector
-orb = cv2.ORB_create()
+orb = cv2.ORB_create(edgeThreshold=32, patchSize=32)
 
-kp1, des1 = orb.detectAndCompute(img1, None)
-kp2, des2 = orb.detectAndCompute(img2, None)
+#detect and compute keypoints, and descriptors of both query and train images
+kpQuery, desQuery = orb.detectAndCompute(queryImg, None)
+kpTrain, desTrain = orb.detectAndCompute(trainImg, None)
 
-bf = cv2.BFMatcher(cv2.NORM_HAMMING2, crossCheck=True)
+matcher = cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=True)
 
-matches = bf.match(des1, des2)
-matches = sorted(matches, key= lambda x:x.distance)
+matches = matcher.match(desQuery, desTrain)
 
-if len(matches) > MIN_MATCH_COUNT:
-    src_pts = np.float32([ kp1[m.queryIdx].pt for m in matches ]).reshape(-1,1,2)
-    dst_pts = np.float32([ kp2[m.trainIdx].pt for m in matches ]).reshape(-1,1,2)
+src_pts = np.zeros((len(matches),2), dtype=np.float32)  #create list of zeros of type float32
+dst_pts = np.zeros((len(matches),2), dtype=np.float32)
 
-    M, mask = cv2.findHomography(src_pts, dst_pts, cv2.RANSAC, 5.0)
-    matchesMask = mask.ravel().tolist()
+for i, match in enumerate(matches):
+    src_pts[i, :] = kpQuery[match.queryIdx].pt  #gives index of descriptor in query descriptors
+    dst_pts[i, :] = kpTrain[match.trainIdx].pt  #gives index of descriptor in training descriptors
 
-    h,w = img1.shape[:2]
-    pts = np.float32([ [0,0],[0,h-1],[w-1,h-1],[w-1,0] ]).reshape(-1,1,2)
-    dst = cv2.perspectiveTransform(pts,M)
+#Homography matrix, Mask
+hgraphyMatrix, mask = cv2.findHomography(src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5)
+matchesMask = mask.ravel().tolist   # determine if points are in mask to avoid drawing points outside of mask
 
-    img2 = cv2.polylines(img2,[np.int32(dst)],True,255,3, cv2.LINE_AA)
+height, width = queryImg.shape # .shape always returns height, width, and channels
 
-else:
-    print("Not enough matches".format(len(matches), MIN_MATCH_COUNT))
-    print(len(matches))
-    matchesMask = None
+pts = np.float32([ [0,0], [0,height - 1], [width - 1, height -1], [width - 1,0] ]).reshape(-1,1,2)
+dst = cv2.perspectiveTransform(pts, hgraphyMatrix)
 
-img3 = cv2.drawMatches(img1,kp1,img2,kp2,matches,None)
-plt.imshow(img3, 'gray'),plt.show()
+#Draw outline around matched image
+trainImg = cv2.polylines(trainImg, [np.int32(dst)], isClosed=True, color=255, thickness=3, lineType=cv2.LINE_AA)
+
+matchLinesImg = cv2.drawMatches(queryImg, kpQuery, trainImg, kpTrain, matches, None, (0,255,0))
+plt.imshow(matchLinesImg)
+plt.show()
 ```
-First, the images must be read in grayscale, or converted to grayscale e.g. `img1 = cv2.imread('box.png', cv2.IMREAD_GRAYSCALE)`
 
-Next we go through a similar feature matching process as that in [bf_feature_matching](../bf_feature_matching/feature_matching_instruction.md).
+First we need to use an ORB detector to detect keypoints and calculate the descriptors for said keypoints.
 ```
 #ORB detector
-orb = cv2.ORB_create()
+orb = cv2.ORB_create(edgeThreshold=32, patchSize=32)
 
-kp1, des1 = orb.detectAndCompute(img1, None)
-kp2, des2 = orb.detectAndCompute(img2, None)
+#detect and compute keypoints, and descriptors of both query and train images
+kpQuery, desQuery = orb.detectAndCompute(queryImg, None)
+kpTrain, desTrain = orb.detectAndCompute(trainImg, None)
+```
 
-bf = cv2.BFMatcher(cv2.NORM_HAMMING2, crossCheck=True)
+Now we use a brute force matcher (as shown in [bf_feature_matching](../bf_feature_matching)) to find matches of the keypoints on the query image and train image.
 
-matches = bf.match(des1, des2)
-matches = sorted(matches, key= lambda x:x.distance)
+```
+matcher = cv2.BFMatcher_create(cv2.NORM_HAMMING, crossCheck=True)
+
+matches = matcher.match(desQuery, desTrain)
+```
+
+Now we initiate `numpy` arrays filled with zeros. These will then be filled with the indexes from our query image to make a `src_pts` array, and indexes from the train image to make the `dst_pts` array.
+
+```
+src_pts = np.zeros((len(matches),2), dtype=np.float32)  #create list of zeros of type float32
+dst_pts = np.zeros((len(matches),2), dtype=np.float32)
+
+for i, match in enumerate(matches):
+    src_pts[i, :] = kpQuery[match.queryIdx].pt  #gives index of descriptor in query descriptors
+    dst_pts[i, :] = kpTrain[match.trainIdx].pt  #gives index of descriptor in training descriptors
+```
+
+Next we use `cv2.findHomography` to find the homography matrix and the mask. The more important thing here is the homography matrix, this is the (3x3) matrix that is calculated to find the transformation that was done on our keypoints. From this matrix, the program will be able to highlight the queryImg (Image we are searching for) within the trainImg (Image we are searching in).
+
+The mask can be used to exclude matches from the drawing that are not included on the actual matched object, but we will not be doing this here.
+
+```
+#Homography matrix, Mask
+hgraphyMatrix, mask = cv2.findHomography(src_pts, dst_pts, method=cv2.RANSAC, ransacReprojThreshold=5)
+matchesMask = mask.ravel().tolist   # determine if points are in mask to avoid drawing points outside of mask
+```
+
+Next we'll get the height and width of the query image, and have it transformed based on the homography matrix
+
+```
+height, width = queryImg.shape # .shape always returns height, width, and channels
+
+pts = np.float32([ [0,0], [0,height - 1], [width - 1, height -1], [width - 1,0] ]).reshape(-1,1,2)
+dst = cv2.perspectiveTransform(pts, hgraphyMatrix)
+```
+
+Now, we can use `cv2.polyLines()` and the dst we found from the `cv2.perspectiveTransform()` to draw an outline around the matched object.
+
+```
+#Draw outline around matched image
+trainImg = cv2.polylines(trainImg, [np.int32(dst)], isClosed=True, color=255, thickness=3, lineType=cv2.LINE_AA)
+```
+
+Finally, we'll draw the matches from the two images, and display them next to each other.
+
+```
+matchLinesImg = cv2.drawMatches(queryImg, kpQuery, trainImg, kpTrain, matches, None, (0,255,0))
+plt.imshow(matchLinesImg)
+plt.show()
 ```
