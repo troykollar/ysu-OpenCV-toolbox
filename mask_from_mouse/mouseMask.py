@@ -50,14 +50,25 @@ def write_to_csv(image, filename: str):
         filename = filename + '.csv'
     np.savetxt(filename, image, fmt='%1.0d', delimiter=',')
 
+def reset():
+    global image, image_copy, image_original, mask, mask_copy, mask_original, refPoint
+    image = image_original.copy()
+    image_copy = image_original.copy()
+    mask = mask_original.copy()
+    mask_copy = mask_original.copy()
+    refPoint.clear()
+
 image = cv2.imread(IMG_FILE_NAME)
 image_copy = image.copy()   # Create a copy of the image for drawing purposes
+image_original = image.copy()   # Save original image in case of reset
+
 cv2.namedWindow('Image')
 cv2.setMouseCallback('Image', on_click)  # Assign the on_click function to the image
 width, height = image.shape[:2]         # Get width and height of the image for mask
 
 mask = np.zeros((width, height))        # Create mask
 mask_copy = mask.copy()                 # Mask copy for drawing purposes
+mask_original = mask.copy()             # Save original mask in case of reset
 
 while True:
     cv2.imshow('Image', image)  # Show image
@@ -65,12 +76,16 @@ while True:
     key = cv2.waitKey(1) & 0xFF
 
     if key == ord('r'):             # If user presses r
-        image = image_copy.copy()   # Revert to original copy of image
-        refPoint.clear()            # Clear rectangle corners
+        reset()
         lButtonDrag = False         # Indicate the user is not lButtonDrag
-    elif key == 27:     # 27 represents escape key 
+    elif key == 27:     # 27 represents escape key
+        out = False
+        break
+    elif key == 13:
+        out = True
         break
 
-write_to_csv(mask, OUTPUT_FILE_NAME)
+if out:
+    write_to_csv(mask, OUTPUT_FILE_NAME)
 
 cv2.destroyAllWindows()
