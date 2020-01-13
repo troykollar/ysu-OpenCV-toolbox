@@ -13,74 +13,83 @@ ARGS = parser.parse_args()
 IMG_FILE_NAME = ARGS.ImgFile
 OUTPUT_FILE_NAME = ARGS.OutFile
 
-refPoint = []       # List for each corner of the rectangle
-lButtonDrag = False    # Says whether or not the user is currently dragging lbutton
-rButtonDrag = False    # Says whether or not the user is currently dragging rbutton
+ref_points = []       # List for each corner of the rectangle
+mouse_drag = False    # Says whether or not the user is currently dragging lbutton
 
-numModes = 1
+NUM_MODES = 1
 mode = 0
 
-newPolygon = True
+new_polygon = True
 
 def on_click(event, x, y, flags, param):
     #Grab global variables
-    global refPoint, lButtonDrag, rButtonDrag, mask, mask_copy, image, image_copy, newPolygon, width, height
+    global ref_points, mouse_drag, mask, mask_copy, image, image_copy, new_polygon, width, height
     if mode == 0:
         if event == cv2.EVENT_LBUTTONDOWN:  # Once click is started
-            refPoint.append((x, y))          # Append first point of the rectangle
-            lButtonDrag = True                 # Indicate drawing has started
+            ref_points.append((x, y))         # Append first point of the rectangle
+            mouse_drag = True                 # Indicate drawing has started
 
-        if lButtonDrag:               # while the user is dragging lButton
+        if mouse_drag:               # while the user is dragging lButton
             if event == cv2.EVENT_LBUTTONUP:  # if user releases
-                refPoint.append((x, y))          # append the second rectangle corner
+                ref_points.append((x, y))          # append the second rectangle corner
                 mask_copy = mask.copy()
                 image_copy = image.copy()
-                lButtonDrag = False                # Indicate the user is no longer dragging lButton
+                mouse_drag = False                # Indicate the user is no longer dragging lButton
 
                 #Draw rectangle
-                cv2.rectangle(image, refPoint[0], refPoint[1], (0, 255, 0), 2)
-                cv2.rectangle(mask, refPoint[0], refPoint[1], (1), 0)
+                cv2.rectangle(image, ref_points[0], ref_points[1], (0, 255, 0), 1)
+                cv2.rectangle(mask, ref_points[0], ref_points[1], (1), 0)
 
-                refPoint.clear()    # Clear reference points so new rectangles can be drawn
+                ref_points.clear()    # Clear reference points so new rectangles can be drawn
 
-            if event == cv2.EVENT_MOUSEMOVE:  # While user is lButtonDrag, draw rectangle
+            if event == cv2.EVENT_MOUSEMOVE:  # While user is mouse_drag, draw rectangle
                 image = image_copy.copy()       # Revert to original image each mouse move, so rectangles don't overlap
                 mask = mask_copy.copy()         # Revert to original mask each mouse move, so rectangles don't overlap
 
                 #Draw rectangle
-                cv2.rectangle(image, refPoint[0], (x, y), (0, 255, 0), 2)
-                cv2.rectangle(mask, refPoint[0], (x, y), (1), -1)
+                cv2.rectangle(image, ref_points[0], (x, y), (0, 255, 0), 1)
+                cv2.rectangle(mask, ref_points[0], (x, y), (1), -1)
 
     elif mode == 1:
         if event == cv2.EVENT_LBUTTONDOWN:
-            if len(refPoint) > 0:
-                refPoint.append((x,y))
-                cv2.line(image, refPoint[-2], (x, y), (0, 255, 0), 2)
-                cv2.line(mask, refPoint[-2], (x, y), (1), 2)
+            if len(ref_points) > 0:   # If a polygon is already started
+                ref_points.append((x,y))  # Add point to polygon
+                # draw lines on image and mask
+                cv2.line(image, ref_points[-2], (x, y), (0, 255, 0), 1)
+                cv2.line(mask, ref_points[-2], (x, y), (1), 1)
+                # Set the copies to include lines on image
                 image_copy = image.copy()
                 mask_copy = mask.copy()
-            elif newPolygon:
-                newPolygon = False
-                refPoint.append((x,y))
-            elif not newPolygon:    # Reset to new polygon after a double click
-                newPolygon = True
+            elif new_polygon:   # If this click is the first point of a new polygon
+                new_polygon = False     # Indicate a new polygon is no longer to be drawn
+                ref_points.append((x,y))    # Add first point of polygon
+            elif not new_polygon:    # Reset to new polygon after a double click
+                new_polygon = True
         
-        if len(refPoint) > 0:
+        if len(ref_points) > 0:
             if event == cv2.EVENT_MOUSEMOVE:
+                # Set image and mask to copy, so lines aren't drawn at every move
                 image = image_copy.copy()
                 mask = mask_copy.copy()
-                cv2.line(image, refPoint[-1], (x, y), (0, 255, 0), 2)
-                cv2.line(mask, refPoint[-1], (x, y), (1), 2)
+                # Draw lines
+                cv2.line(image, ref_points[-1], (x, y), (0, 255, 0), 1)
+                cv2.line(mask, ref_points[-1], (x, y), (1), 1)
 
-        if len(refPoint) > 1:
-                if event == cv2.EVENT_LBUTTONDBLCLK:
-                    cv2.line(image, refPoint[-1], refPoint[0], (0, 255, 0), 2)
-                    cv2.line(mask, refPoint[-1], refPoint[0], (1), 2)
+        if len(ref_points) > 1:
+            # At double click, attach current point to first point
+            if event == cv2.EVENT_LBUTTONDBLCLK:
+                cv2.line(image, ref_points[-1], ref_points[0], (0, 255, 0), 1)
+                cv2.line(mask, ref_points[-1], ref_points[0], (1), 1)
 
-                    cv2.fillPoly(mask, [np.asarray(refPoint)], (1))
-                    image_copy = image.copy()
-                    mask_copy = mask.copy()
-                    refPoint.clear()
+                # Fill the polygon on the mask
+                cv2.fillPoly(mask, [np.asarray(ref_points)], (1))
+
+                # Set copies to include polygon
+                image_copy = image.copy()
+                mask_copy = mask.copy()
+
+                # Clear the points so a new polygon can be drawn
+                ref_points.clear()
 
 def write_to_csv(image, filename: str):
     if not filename.endswith('.csv'):
@@ -88,12 +97,12 @@ def write_to_csv(image, filename: str):
     np.savetxt(filename, image, fmt='%1.0d', delimiter=',')
 
 def reset():
-    global image, image_copy, image_original, mask, mask_copy, mask_original, refPoint
+    global image, image_copy, image_original, mask, mask_copy, mask_original, ref_points
     image = image_original.copy()
     image_copy = image_original.copy()
     mask = mask_original.copy()
     mask_copy = mask_original.copy()
-    refPoint.clear()
+    ref_points.clear()
 
 image = cv2.imread(IMG_FILE_NAME)
 image_copy = image.copy()   # Create a copy of the image for drawing purposes
@@ -114,9 +123,9 @@ while True:
 
     if key == ord('r'):             # If user presses r
         reset()
-        lButtonDrag = False         # Indicate the user is not lButtonDrag
+        mouse_drag = False         # Indicate the user is not mouse_drag
     if key == ord('m'):
-        if mode == numModes:
+        if mode == NUM_MODES:
             mode = 0
         else:
             mode += 1
