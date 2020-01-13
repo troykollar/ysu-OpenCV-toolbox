@@ -17,33 +17,70 @@ refPoint = []       # List for each corner of the rectangle
 lButtonDrag = False    # Says whether or not the user is currently dragging lbutton
 rButtonDrag = False    # Says whether or not the user is currently dragging rbutton
 
+numModes = 1
+mode = 0
+
+newPolygon = True
+
 def on_click(event, x, y, flags, param):
     #Grab global variables
-    global refPoint, lButtonDrag, rButtonDrag, mask, mask_copy, image, image_copy
-    if event == cv2.EVENT_LBUTTONDOWN:  # Once click is started
-        refPoint.append((x, y))          # Append first point of the rectangle
-        lButtonDrag = True                 # Indicate drawing has started
+    global refPoint, lButtonDrag, rButtonDrag, mask, mask_copy, image, image_copy, newPolygon, width, height
+    if mode == 0:
+        if event == cv2.EVENT_LBUTTONDOWN:  # Once click is started
+            refPoint.append((x, y))          # Append first point of the rectangle
+            lButtonDrag = True                 # Indicate drawing has started
 
-    if lButtonDrag:               # while the user is dragging lButton
-        if event == cv2.EVENT_LBUTTONUP:  # if user releases
-            refPoint.append((x, y))          # append the second rectangle corner
-            mask_copy = mask.copy()
-            image_copy = image.copy()
-            lButtonDrag = False                # Indicate the user is no longer dragging lButton
+        if lButtonDrag:               # while the user is dragging lButton
+            if event == cv2.EVENT_LBUTTONUP:  # if user releases
+                refPoint.append((x, y))          # append the second rectangle corner
+                mask_copy = mask.copy()
+                image_copy = image.copy()
+                lButtonDrag = False                # Indicate the user is no longer dragging lButton
 
-            #Draw rectangle
-            cv2.rectangle(image, refPoint[0], refPoint[1], (0, 255, 0), 2)
-            cv2.rectangle(mask, refPoint[0], refPoint[1], (1), 0)
+                #Draw rectangle
+                cv2.rectangle(image, refPoint[0], refPoint[1], (0, 255, 0), 2)
+                cv2.rectangle(mask, refPoint[0], refPoint[1], (1), 0)
 
-            refPoint.clear()    # Clear reference points so new rectangles can be drawn
+                refPoint.clear()    # Clear reference points so new rectangles can be drawn
 
-        if event == cv2.EVENT_MOUSEMOVE:  # While user is lButtonDrag, draw rectangle
-            image = image_copy.copy()       # Revert to original image each mouse move, so rectangles don't overlap
-            mask = mask_copy.copy()         # Revert to original mask each mouse move, so rectangles don't overlap
+            if event == cv2.EVENT_MOUSEMOVE:  # While user is lButtonDrag, draw rectangle
+                image = image_copy.copy()       # Revert to original image each mouse move, so rectangles don't overlap
+                mask = mask_copy.copy()         # Revert to original mask each mouse move, so rectangles don't overlap
 
-            #Draw rectangle
-            cv2.rectangle(image, refPoint[0], (x, y), (0, 255, 0), 2)
-            cv2.rectangle(mask, refPoint[0], (x, y), (1), -1)
+                #Draw rectangle
+                cv2.rectangle(image, refPoint[0], (x, y), (0, 255, 0), 2)
+                cv2.rectangle(mask, refPoint[0], (x, y), (1), -1)
+
+    elif mode == 1:
+        if event == cv2.EVENT_LBUTTONDOWN:
+            if len(refPoint) > 0:
+                refPoint.append((x,y))
+                cv2.line(image, refPoint[-2], (x, y), (0, 255, 0), 2)
+                cv2.line(mask, refPoint[-2], (x, y), (1), 2)
+                image_copy = image.copy()
+                mask_copy = mask.copy()
+            elif newPolygon:
+                newPolygon = False
+                refPoint.append((x,y))
+            elif not newPolygon:    # Reset to new polygon after a double click
+                newPolygon = True
+        
+        if len(refPoint) > 0:
+            if event == cv2.EVENT_MOUSEMOVE:
+                image = image_copy.copy()
+                mask = mask_copy.copy()
+                cv2.line(image, refPoint[-1], (x, y), (0, 255, 0), 2)
+                cv2.line(mask, refPoint[-1], (x, y), (1), 2)
+
+        if len(refPoint) > 1:
+                if event == cv2.EVENT_LBUTTONDBLCLK:
+                    cv2.line(image, refPoint[-1], refPoint[0], (0, 255, 0), 2)
+                    cv2.line(mask, refPoint[-1], refPoint[0], (1), 2)
+
+                    cv2.fillPoly(mask, [np.asarray(refPoint)], (1))
+                    image_copy = image.copy()
+                    mask_copy = mask.copy()
+                    refPoint.clear()
 
 def write_to_csv(image, filename: str):
     if not filename.endswith('.csv'):
@@ -78,6 +115,11 @@ while True:
     if key == ord('r'):             # If user presses r
         reset()
         lButtonDrag = False         # Indicate the user is not lButtonDrag
+    if key == ord('m'):
+        if mode == numModes:
+            mode = 0
+        else:
+            mode += 1
     elif key == 27:     # 27 represents escape key
         out = False
         break
