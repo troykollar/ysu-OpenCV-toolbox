@@ -6,12 +6,14 @@ import os
 from np_vid_viewer import NpVidViewer
 
 PARSER = argparse.ArgumentParser()
-PARSER.add_argument("file", type=str, help="The name of the file to load.")
+PARSER.add_argument("directory", type=str, help="Directory containing files.")
 
 ARGS = PARSER.parse_args()
 
-FILE_NAME = ARGS.file
+DIR = ARGS.directory
 
-VIEWER = NpVidViewer(FILE_NAME)
+os.chdir(DIR)
 
-VIEWER.play_video()
+VIEWER = NpVidViewer("thermal_cam_temps.npy", tc_times="thermal_cam_times.npy", melt_pool_data="melt_pool_data.npy")
+
+VIEWER.play_video(250)
