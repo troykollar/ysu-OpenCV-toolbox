@@ -10,14 +10,35 @@ class NpVidViewer:
         self._speed = 1
         self._window_name = window_name
         self._num_frames = self.array.shape[0]
-        if tc_times is not None:
-            self._timestamps = np.load(tc_times, allow_pickle=True)
-        else:
-            self._timestamps = None
+        self._timestamps = np.load(tc_times, allow_pickle=True)
         if melt_pool_data is not None:
             self._melt_pool_data = np.load(melt_pool_data, allow_pickle=True)
         else:
             self._melt_pool_data = None
+
+        self._mp_data_index = 0
+        self.match_vid_to_meltpool()
+
+    def match_vid_to_meltpool(self):
+        self._matched_array = []
+        for i in range(0, self.array.shape[0]):
+            if self.mp_data_index < self.melt_pool_data.shape[0]:
+                if self.timestamps[i] >= self.melt_pool_data[self.mp_data_index + 1][0]:
+                    self.mp_data_index = self.mp_data_index + 1
+            self._matched_array.append([i, self.timestamps[i], self.melt_pool_data[self.mp_data_index][0]])
+
+    @property
+    def mp_data_index(self):
+        return self._mp_data_index
+
+    @mp_data_index.setter
+    def mp_data_index(self, value: int):
+        if value < 0:
+            self._mp_data_index = 0
+        elif value > self._melt_pool_data.shape[0]:
+            self._mp_data_index = self._melt_pool_data.shape[:0][0]
+        else:
+            self._mp_data_index = value
 
     @property
     def melt_pool_data(self):
@@ -52,12 +73,12 @@ class NpVidViewer:
     def timestamps(self):
         return self._timestamps
 
-    def update_image(self, frame: int, mp_data_index: int, current_time_stamp):
+    def update_image(self, frame: int):
         img = self.array[frame]
         font = cv2.FONT_HERSHEY_DUPLEX
-        normalized_img = img.copy()
-        normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+        normalized_img = cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
         normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
+
         img_height = normalized_img.shape[:1][0]
         font_size = img_height/480
         font_color = (255, 255, 255)
@@ -74,7 +95,7 @@ class NpVidViewer:
                                         str(self.melt_pool_data[mp_data_index][4]),
                                         (50,int((4/16)*img_height)), font, font_size, font_color)
         cv2.imshow(self.window_name, normalized_img)
-        print("Frame: " + str(frame), "| TC time: " + str(current_time_stamp.replace(microsecond=0)),
+        print("Frame: " + str(frame), "| TC time: " + str(self.timestamps[frame].replace(microsecond=0)),
                 "| MP time: " + str(self.melt_pool_data[mp_data_index][0].replace(microsecond=0)),
                 "| MP X: " + str(self.melt_pool_data[mp_data_index][1]), 
                 "| MP Y: " + str(self.melt_pool_data[mp_data_index][2]), 
@@ -89,14 +110,10 @@ class NpVidViewer:
         data_list = []
         while True:
             key = cv2.waitKey(self.speed)
-            if self.timestamps is not None:
-                current_time_stamp = self.timestamps[frame]
-            else:
-                current_time_stamp = None
-            if current_time_stamp.replace(microsecond=0) >= self.melt_pool_data[mp_data_index + 1][0].replace(microsecond=0):
-                mp_data_index = mp_data_index + 1
+            if self.timestamps[frame].replace(microsecond=0) >= self.melt_pool_data[mp_data_index + 1][0].replace(microsecond=0):
+                self.mp_data_index = self.mp_data_index + 1
             if not pause:
-                self.update_image(frame, mp_data_index, current_time_stamp)
+                self.update_image(frame)
                 frame = frame + 1
             elif pause:
                 if key == ord('s'):
