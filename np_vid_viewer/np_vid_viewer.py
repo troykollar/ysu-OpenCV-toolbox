@@ -52,6 +52,35 @@ class NpVidViewer:
     def timestamps(self):
         return self._timestamps
 
+    def update_image(self, frame: int, mp_data_index: int, current_time_stamp):
+        img = self.array[frame]
+        font = cv2.FONT_HERSHEY_DUPLEX
+        normalized_img = img.copy()
+        normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+        normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
+        img_height = normalized_img.shape[:1][0]
+        font_size = img_height/480
+        font_color = (255, 255, 255)
+        normalized_img = cv2.putText(normalized_img, "X: " + 
+                                        str(self.melt_pool_data[mp_data_index][1]),
+                                        (50, int(img_height/16)), font, font_size, font_color)
+        normalized_img = cv2.putText(normalized_img, "Y: " + 
+                                        str(self.melt_pool_data[mp_data_index][2]),
+                                        (50,int((2/16)*img_height)), font, font_size, font_color)
+        normalized_img = cv2.putText(normalized_img, "Z: " + 
+                                        str(self.melt_pool_data[mp_data_index][3]), 
+                                        (50,int((3/16)*img_height)), font, font_size, font_color)
+        normalized_img = cv2.putText(normalized_img, "Area: " + 
+                                        str(self.melt_pool_data[mp_data_index][4]),
+                                        (50,int((4/16)*img_height)), font, font_size, font_color)
+        cv2.imshow(self.window_name, normalized_img)
+        print("Frame: " + str(frame), "| TC time: " + str(current_time_stamp.replace(microsecond=0)),
+                "| MP time: " + str(self.melt_pool_data[mp_data_index][0].replace(microsecond=0)),
+                "| MP X: " + str(self.melt_pool_data[mp_data_index][1]), 
+                "| MP Y: " + str(self.melt_pool_data[mp_data_index][2]), 
+                "| MP Z: " + str(self.melt_pool_data[mp_data_index][3]),
+                "| MP Area: " + str(self.melt_pool_data[mp_data_index][4]))
+
     def play_video(self, speed=1):
         self.speed = speed
         pause = False
@@ -60,44 +89,30 @@ class NpVidViewer:
         data_list = []
         while True:
             key = cv2.waitKey(self.speed)
+            if self.timestamps is not None:
+                current_time_stamp = self.timestamps[frame]
+            else:
+                current_time_stamp = None
+            if current_time_stamp.replace(microsecond=0) >= self.melt_pool_data[mp_data_index + 1][0].replace(microsecond=0):
+                mp_data_index = mp_data_index + 1
             if not pause:
-                img = self.array[frame]
-                if self.timestamps is not None:
-                    current_time_stamp = self.timestamps[frame]
-                    if current_time_stamp.replace(microsecond=0) >= self.melt_pool_data[mp_data_index + 1][0].replace(microsecond=0):
-                        mp_data_index = mp_data_index + 1
-                else:
-                    current_time_stamp = None
-                font = cv2.FONT_HERSHEY_DUPLEX
-                normalized_img = img.copy()
-                normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
-                normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
-                img_height = normalized_img.shape[:1][0]
-                font_size = img_height/480
-                font_color = (255, 255, 255)
-                normalized_img = cv2.putText(normalized_img, "X: " + 
-                                             str(self.melt_pool_data[mp_data_index][1]),
-                                             (50, int(img_height/16)), font, font_size, font_color)
-                normalized_img = cv2.putText(normalized_img, "Y: " + 
-                                             str(self.melt_pool_data[mp_data_index][2]),
-                                             (50,int((2/16)*img_height)), font, font_size, font_color)
-                normalized_img = cv2.putText(normalized_img, "Z: " + 
-                                             str(self.melt_pool_data[mp_data_index][3]), 
-                                             (50,int((3/16)*img_height)), font, font_size, font_color)
-                normalized_img = cv2.putText(normalized_img, "Area: " + 
-                                             str(self.melt_pool_data[mp_data_index][4]),
-                                             (50,int((4/16)*img_height)), font, font_size, font_color)
-                cv2.imshow(self.window_name, normalized_img)
-                print("Frame: " + str(frame), "| TC time: " +  str(current_time_stamp.replace(microsecond=0)), "| MP time: " + str(self.melt_pool_data[mp_data_index][0].replace(microsecond=0)),
-                        "| MP X: " + str(self.melt_pool_data[mp_data_index][1]), "| MP Y: " + str(self.melt_pool_data[mp_data_index][2]), "| MP Z: " + str(self.melt_pool_data[mp_data_index][3]),
-                        "| MP Area: " + str(self.melt_pool_data[mp_data_index][4]))
+                self.update_image(frame, mp_data_index, current_time_stamp)
                 frame = frame + 1
             elif pause:
                 if key == ord('s'):
                     np.savetxt('tc_temps-' + str(i + 1) + ".csv", img, fmt='%d', delimiter=",")
+                elif key == ord('l'):
+                    frame = frame + 10
+                    self.update_image(frame, mp_data_index, current_time_stamp)
+                elif key == ord('j'):
+                    if frame > 10:
+                        frame = frame - 10
+                    else:
+                        frame = 0
+                    self.update_image(frame, mp_data_index, current_time_stamp)
             if key == ord('q'):
                 break
-            elif key == ord('p'):
+            elif key == ord('k'):
                 pause = not pause
             elif  frame >= self.num_frames:
                 break
