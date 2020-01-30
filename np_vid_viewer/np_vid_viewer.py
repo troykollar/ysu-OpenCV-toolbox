@@ -1,9 +1,12 @@
 import cv2
 import numpy as np
 import datetime
+from reflection_remover import ReflectionRemover
 
 class NpVidViewer:
-    def __init__(self, filename: str, window_name="Video", melt_pool_data=None, tc_times=None):
+    def __init__(self, filename: str, window_name="Video", melt_pool_data=None, tc_times=None,
+                 remove_reflection=False):
+        self._remove_reflection = remove_reflection
         self._array = np.load(filename, mmap_mode='r', allow_pickle=True)
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(window_name, 640, 480)
@@ -30,6 +33,9 @@ class NpVidViewer:
                                         self.melt_pool_data[self.mp_data_index][2],
                                         self.melt_pool_data[self.mp_data_index][3],
                                         self.melt_pool_data[self.mp_data_index][4]])
+    @property
+    def remove_reflection(self):
+        return self._remove_reflection
 
     @property
     def num_frames(self):
@@ -114,8 +120,12 @@ class NpVidViewer:
 
     def update_image(self, frame: int):
         img = self.array[frame]
+        normalized_img = img.copy()
+        if self.remove_reflection:
+            ReflectionRemover.remove(normalized_img, zero_level_threshold=180, max_temp_threshold=700)
+
         font = cv2.FONT_HERSHEY_DUPLEX
-        normalized_img = cv2.normalize(img, img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+        normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
         normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
 
         img_height = normalized_img.shape[:1][0]
