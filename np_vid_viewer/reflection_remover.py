@@ -4,7 +4,11 @@ import numpy as np
 import cv2
 
 class ReflectionRemover:
-    def remove(img: np.ndarray, distance=0, min_value=174, max_temp_threshold=1900, zero_level_threshold=176):
+    def __init__(self):
+        pass
+
+    def remove(self, img: np.ndarray, distance=0, min_value=174, max_temp_threshold=1900,
+               zero_level_threshold=176, remove_lower=False, img_array=None):
         """Set values above the hottest point to min_value to remove the reflection of heat.
         
         Args:
@@ -29,3 +33,36 @@ class ReflectionRemover:
 
             for i in range(0, remove_to - distance):
                 img[i] = min_value
+
+        if remove_lower:
+            img_height = img.shape[0]
+            lower_bounds = self.get_lower_bounds(img_array)
+            for i in range(0, len(lower_bounds)):
+                x = lower_bounds[i][0]
+                y = lower_bounds[i][1]
+                print(y, x)
+                img[0][x] = min_value
+            
+    
+    def get_lower_bounds(self, img_array):
+        #Compares x coordinates of current frame max and next frame max
+        i = 0
+        max_x = np.where(img_array[0] == np.amax(img_array[0]))[1][0]
+        next_max_x = np.where(img_array[1] == np.amax(img_array[1]))[1][0]
+        max_y = np.where(img_array[0] == np.amax(img_array[0]))[0][0]
+        max_x_locations = []
+        max_y_locations = []
+        while (max_x < next_max_x):
+            max_x_locations.append(max_x)
+            max_y_locations.append(max_y)
+            i = i+1
+            max_x = np.where(img_array[i] == np.amax(img_array[i]))[1][0]
+            next_max_x = np.where(img_array[i + 1] == np.amax(img_array[i + 1]))[1][0]
+            max_y = np.where(img_array[i] == np.amax(img_array[i]))[0][0]
+        max_locations = []
+        j = 0
+        for i in range (max_x_locations[0], max_x_locations[-1]):
+            if i > max_x_locations[j]:
+                j = j + 1
+            max_locations.append((i, max_y_locations[j]))
+        return max_locations

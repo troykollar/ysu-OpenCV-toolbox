@@ -5,8 +5,9 @@ from reflection_remover import ReflectionRemover
 
 class NpVidViewer:
     def __init__(self, filename: str, window_name="Video", melt_pool_data=None, tc_times=None,
-                 remove_reflection=False):
+                 remove_reflection=False, remove_lower=False):
         self._remove_reflection = remove_reflection
+        self.remove_lower = remove_lower
         self._array = np.load(filename, mmap_mode='r', allow_pickle=True)
         self._speed = 1
         self._window_name = window_name
@@ -145,7 +146,9 @@ class NpVidViewer:
         img = self.array[frame]
         normalized_img = img.copy()
         if self.remove_reflection:
-            ReflectionRemover.remove(normalized_img, zero_level_threshold=180, max_temp_threshold=700)
+            r_remover = ReflectionRemover()
+            r_remover.remove(normalized_img, zero_level_threshold=180,
+                                     max_temp_threshold=700, remove_lower=True, img_array=self.array)
 
         normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
         normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
