@@ -17,4 +17,4 @@ os.chdir(DIR)
 VIEWER = NpVidViewer("thermal_cam_temps.npy", tc_times="thermal_cam_times.npy",
                      melt_pool_data="melt_pool_data.npy", remove_reflection=True)
 
-VIEWER.play_video(1)
+VIEWER.save_video("myvid.avi")

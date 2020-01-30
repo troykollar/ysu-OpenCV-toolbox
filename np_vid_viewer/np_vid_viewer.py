@@ -8,8 +8,6 @@ class NpVidViewer:
                  remove_reflection=False):
         self._remove_reflection = remove_reflection
         self._array = np.load(filename, mmap_mode='r', allow_pickle=True)
-        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(window_name, 640, 480)
         self._speed = 1
         self._window_name = window_name
         self._num_frames = self.array.shape[0]
@@ -33,6 +31,31 @@ class NpVidViewer:
                                         self.melt_pool_data[self.mp_data_index][2],
                                         self.melt_pool_data[self.mp_data_index][3],
                                         self.melt_pool_data[self.mp_data_index][4]])
+
+    def save_video(self, filename="Video.avi", framerate=60):
+        imgs = []
+        height = self.array[0].shape[0]
+        width = self.array[0].shape[1]
+        size = (width, height)
+        out = cv2.VideoWriter(filename, cv2.VideoWriter_fourcc('f','m','p','4'), framerate, size)
+        for i in range(0, self.array.shape[0]):
+            percent = (i/self.array.shape[0])*100
+            print("Saving video: " + str("%.2f" % percent) + "%")
+            img = self.array[i]
+            normalized_img = img.copy()
+            if self.remove_reflection:
+                ReflectionRemover.remove(normalized_img, zero_level_threshold=180, max_temp_threshold=700)
+
+            normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
+            normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
+
+            self.add_mp_data_to_img(normalized_img, i)
+            
+            out.write(normalized_img)
+        
+        out.release
+            
+
     @property
     def remove_reflection(self):
         return self._remove_reflection
@@ -124,29 +147,35 @@ class NpVidViewer:
         if self.remove_reflection:
             ReflectionRemover.remove(normalized_img, zero_level_threshold=180, max_temp_threshold=700)
 
-        font = cv2.FONT_HERSHEY_DUPLEX
         normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
         normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
 
-        img_height = normalized_img.shape[:1][0]
-        font_size = img_height/480
-        font_color = (255, 255, 255)
-        normalized_img = cv2.putText(normalized_img, "X: " + str(self.mp_x(frame)),
-                                     (50, int((1/16)*img_height)), font, font_size, font_color)
-        normalized_img = cv2.putText(normalized_img, "Y: " + str(self.mp_y(frame)),
-                                     (50, int((2/16)*img_height)), font, font_size, font_color)
-        normalized_img = cv2.putText(normalized_img, "Z: " + str(self.mp_z(frame)), 
-                                     (50, int((3/16)*img_height)), font, font_size, font_color)
-        normalized_img = cv2.putText(normalized_img, "Area: " + str(self.mp_area(frame)),
-                                     (50, int((4/16)*img_height)), font, font_size, font_color)
+        self.add_mp_data_to_img(normalized_img, frame)
+
         self.print_info(frame)
         cv2.imshow(self.window_name, normalized_img)
 
+    def add_mp_data_to_img(self, img, frame):
+        img_height = img.shape[:1][0]
+        font = cv2.FONT_HERSHEY_DUPLEX
+        font_size = img_height/480
+        font_color = (255, 255, 255)
+        img = cv2.putText(img, "X: " + str(self.mp_x(frame)),
+                          (50, int((1/16)*img_height)), font, font_size, font_color)
+        img = cv2.putText(img, "Y: " + str(self.mp_y(frame)),
+                          (50, int((2/16)*img_height)), font, font_size, font_color)
+        img = cv2.putText(img, "Z: " + str(self.mp_z(frame)), 
+                          (50, int((3/16)*img_height)), font, font_size, font_color)
+        img = cv2.putText(img, "Area: " + str(self.mp_area(frame)),
+                          (50, int((4/16)*img_height)), font, font_size, font_color)
+
+
     def play_video(self, speed=1):
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.window_name, 640, 480)
         self.speed = speed
         pause = False
         frame = 0
-        data_list = []
         while True:
             key = cv2.waitKey(self.speed)
             if not pause:
