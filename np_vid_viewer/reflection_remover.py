@@ -36,6 +36,5 @@ class ReflectionRemover:
             for i in range(0, len(lower_bounds)):
                 x = lower_bounds[i][0]
                 y = lower_bounds[i][1]
-                print(x,y)
                 img[y:, x] = min_value
             
