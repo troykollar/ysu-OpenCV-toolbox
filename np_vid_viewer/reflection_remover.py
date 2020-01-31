@@ -33,9 +33,53 @@ class ReflectionRemover:
 
         if remove_lower:
             img_height = img.shape[0]
-            for i in range(0, len(lower_bounds)):
-                x = lower_bounds[i][0]
-                y = lower_bounds[i][1]
-                print(x,y)
-                img[y:, x] = min_value
-            
+            img_width = img.shape[1]
+            top_level = 0
+
+            for y in range(0, img_height):
+                for x in range(0, img_width):
+                    if img[y,x] > zero_level_threshold:
+                        values = []
+                        #Make a list of non "zero" values in column
+                        for i in range(y, img_height - 1):
+                            if img[i, x] > zero_level_threshold:
+                                values.append(img[i, x])
+                            else:
+                                break
+                        if len(values) > 3:     # If there is enough values for a reflection
+                            max_in_list = max(values)
+                            vals_after_max = values[values.index(max_in_list) : len(values)]
+                            print(min(vals_after_max))
+                            if min(vals_after_max) <= zero_level_threshold + 30:
+                                end_of_part = y + vals_after_max.index(min(vals_after_max))
+                                img[end_of_part:, x] = min_value
+                                print(x, "End of part:", end_of_part)
+
+            """
+            for i in range(0, img_height):
+                if np.mean(img[i]) > zero_level_threshold:
+                    top_level = i
+                    break
+            for x in range(0, img_width):   #Find top of part
+                if img[top_level, x] > min_value:
+                    values = []
+                    #Make a list of non "zero" values in column
+                    for y in range(top_level, img_height - 1):
+                        if img[y, x] > zero_level_threshold:
+                            values.append(img[y, x])
+                        else:
+                            print(x, y)
+                            img[y:, x] = min_value
+                            break
+
+                    if len(values) > 3:     # If there is enough values for a reflection
+                        max_in_list = max(values)
+                        vals_after_max = values[values.index(max_in_list) : len(values)]
+                        end_of_part = top_level + vals_after_max.index(min(vals_after_max))
+                        print(x,y)
+                        print("End of part:", end_of_part)
+                        if y < end_of_part:
+                            img[y:, x] = min_value
+                        else:
+                            img[end_of_part:, x] = min_value
+                        values.clear()"""

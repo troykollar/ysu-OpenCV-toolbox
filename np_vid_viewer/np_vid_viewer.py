@@ -175,7 +175,7 @@ class NpVidViewer:
         img = self.array[frame]
         normalized_img = img.copy()
         if self.remove_reflection:
-            ReflectionRemover.remove(normalized_img, zero_level_threshold=180,
+            ReflectionRemover.remove(normalized_img, zero_level_threshold=200,
                                      max_temp_threshold=700, remove_lower=True,
                                      lower_bounds=self.lower_bounds)
 
