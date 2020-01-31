@@ -20,6 +20,35 @@ class NpVidViewer:
 
         self._mp_data_index = 0
         self.match_vid_to_meltpool()
+        self._lower_bounds = self.find_lower_bounds()
+
+    def find_lower_bounds(self):
+        #Compares x coordinates of current frame max and next frame max
+        img_array = self.array
+        i = 0
+        max_x = np.where(img_array[0] == np.amax(img_array[0]))[1][0]
+        next_max_x = np.where(img_array[1] == np.amax(img_array[1]))[1][0]
+        max_y = np.where(img_array[0] == np.amax(img_array[0]))[0][0]
+        max_x_locations = []
+        max_y_locations = []
+        while (max_x < next_max_x):
+            max_x_locations.append(max_x)
+            max_y_locations.append(max_y)
+            i = i+1
+            max_x = np.where(img_array[i] == np.amax(img_array[i]))[1][0]
+            next_max_x = np.where(img_array[i + 1] == np.amax(img_array[i + 1]))[1][0]
+            max_y = np.where(img_array[i] == np.amax(img_array[i]))[0][0]
+        max_locations = []
+        j = 0
+        for i in range (max_x_locations[0], max_x_locations[-1]):
+            if i > max_x_locations[j]:
+                j = j + 1
+            max_locations.append((i, max_y_locations[j]))
+        return max_locations
+
+    @property
+    def lower_bounds(self):
+        return self._lower_bounds
 
     def match_vid_to_meltpool(self):
         self._matched_array = []
@@ -146,9 +175,9 @@ class NpVidViewer:
         img = self.array[frame]
         normalized_img = img.copy()
         if self.remove_reflection:
-            r_remover = ReflectionRemover()
-            r_remover.remove(normalized_img, zero_level_threshold=180,
-                                     max_temp_threshold=700, remove_lower=True, img_array=self.array)
+            ReflectionRemover.remove(normalized_img, zero_level_threshold=180,
+                                     max_temp_threshold=700, remove_lower=True,
+                                     lower_bounds=self.lower_bounds)
 
         normalized_img = cv2.normalize(normalized_img, normalized_img, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC1)
         normalized_img = cv2.applyColorMap(normalized_img, cv2.COLORMAP_INFERNO)
