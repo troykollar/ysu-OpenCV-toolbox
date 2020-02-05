@@ -1,20 +1,30 @@
 """Utility to remove the heat reflection from an image"""
-import os
 import numpy as np
-import cv2
+
 
 class ReflectionRemover:
-    def remove(img: np.ndarray, distance=0, min_value=174, max_temp_threshold=1900,
-               zero_level_threshold=176, remove_lower=False, img_array=None, lower_bounds=None):
+    def remove(img: np.ndarray,
+               distance=0,
+               min_value=174,
+               max_temp_threshold=1900,
+               zero_level_threshold=176,
+               remove_lower=False,
+               lower_bounds=None):
         """Set values above the hottest point to min_value to remove the reflection of heat.
         
-        Args:
-            img (np.ndarray) -- the img to remove the reflection from
-            distance (int) -- the number of pixels above the hottest point to draw until (default 0)
-            min_value (int) -- the minimum value read from the thermal camera (default 174)
-            max_temp_threshold (int) --    the hotpoint must be greater than to continue removing reflections
-                            this is useful to prevent removing parts of the image during cooling
-            zero_level_threshold (int) -- lines that have an average value above zero_level_threshold will not be painted over
+        Parameters
+        ----------
+            img : np.ndarray
+                img to remove reflection from
+            distance : int
+                number of pixels above the hottest point to draw until (default 0)
+            min_value : int
+                minimum value read from the thermal camera (default 174)
+            max_temp_threshold : int
+                the hotpoint must be greater than to continue removing reflections this is useful
+                to prevent removing parts of the image during cooling
+            zero_level_threshold : int
+                lines that have an average value above `zero_level_threshold` will not be removed
         """
         max_value = np.amax(img)
         max_value_location = np.where(img == max_value)
@@ -32,9 +42,7 @@ class ReflectionRemover:
                 img[i] = min_value
 
         if remove_lower:
-            img_height = img.shape[0]
             for i in range(0, len(lower_bounds)):
                 x = lower_bounds[i][0]
                 y = lower_bounds[i][1]
                 img[y:, x] = min_value
-            
