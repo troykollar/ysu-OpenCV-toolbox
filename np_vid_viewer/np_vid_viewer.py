@@ -207,10 +207,12 @@ class NpVidViewer:
 
     @property
     def mp_data_index(self):
+        """Return the current index of the meltpool data array"""
         return self._mp_data_index
 
     @mp_data_index.setter
     def mp_data_index(self, value: int):
+        """Set the `_mp_data_index` ensuring it is within bounds of the `_melt_pool_data` array."""
         if value < 0:
             self._mp_data_index = 0
         elif value > self._melt_pool_data.shape[0]:
@@ -220,22 +222,27 @@ class NpVidViewer:
 
     @property
     def melt_pool_data(self):
+        """Return the `_melt_pool_data` array"""
         return self._melt_pool_data
 
     @property
     def window_name(self):
+        """Return the name of the window"""
         return self._window_name
 
     @property
     def array(self):
+        """Return the array containing the thermal cam temp data"""
         return self._array
 
     @property
     def speed(self):
+        """Return `_speed`"""
         return self._speed
 
     @speed.setter
     def speed(self, new_speed):
+        """Set the speed, ensuring it is within OpenCV bounds of 1 <= speed <= 1000"""
         if new_speed < 1:
             self._speed = 1
         elif new_speed > 1000:
@@ -245,9 +252,11 @@ class NpVidViewer:
 
     @property
     def timestamps(self):
+        """Return the thermal camera timestamps"""
         return self._timestamps
 
     def print_info(self, frame):
+        """Print the information about the current frame to console"""
         print(
             "Frame: " + str(frame),
             "| TC time: " +
@@ -261,6 +270,18 @@ class NpVidViewer:
         )
 
     def update_image(self, frame: int):
+        """Normalize the array data. Apply the colormap, and add meltpool data to the image
+        
+        Parameters
+        ----------
+        frame : int
+            The current frame of the video
+        
+        Returns
+        -------
+        normalized_img
+            Numpy array of the updated image of the current frame.
+        """
         img = self.array[frame]
         normalized_img = img.copy()
         if self.remove_reflection:
@@ -283,6 +304,15 @@ class NpVidViewer:
         return normalized_img
 
     def add_mp_data_to_img(self, img, frame):
+        """Add meltpool data to the image.
+        
+        Parameters
+        ----------
+        img
+            Image to add the meltpool data text to
+        frame : int
+            Frame number to grab meltpool data for
+        """
         img_height = img.shape[:1][0]
         font = cv2.FONT_HERSHEY_DUPLEX
         font_size = img_height / 480
@@ -321,6 +351,13 @@ class NpVidViewer:
         )
 
     def play_video(self, speed=1):
+        """Play the video.
+
+        Arguments
+        ---------
+        speed : int
+            Delay in ms between showing each frame. Must be 1-1000.
+        """
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(self.window_name, 640, 480)
         self.speed = speed
