@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-import datetime
 from reflection_remover import ReflectionRemover
 
 
@@ -138,7 +137,6 @@ class NpVidViewer:
         framerate : int
             Framerate to generate the video with.
         """
-        imgs = []
         height = self.array[0].shape[0]
         width = self.array[0].shape[1]
         size = (width, height)
@@ -164,7 +162,7 @@ class NpVidViewer:
 
             out.write(normalized_img)
 
-        out.release
+        out.release()
 
     @property
     def remove_reflection(self):
@@ -270,13 +268,12 @@ class NpVidViewer:
         )
 
     def update_image(self, frame: int):
-        """Normalize the array data. Apply the colormap, and add meltpool data to the image
-        
+        """Normalize the array data. Apply the colormap, and add meltpool data to the image.
+
         Parameters
         ----------
         frame : int
             The current frame of the video
-        
         Returns
         -------
         normalized_img
@@ -395,4 +392,4 @@ class NpVidViewer:
                 pause = not pause
             elif frame >= self.num_frames:
                 break
-        cv2.destroyAllWindows
+        cv2.destroyAllWindows()
