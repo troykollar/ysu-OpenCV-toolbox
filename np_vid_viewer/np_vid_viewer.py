@@ -4,8 +4,47 @@ import datetime
 from reflection_remover import ReflectionRemover
 
 class NpVidViewer:
-    def __init__(self, filename: str, window_name="Video", melt_pool_data=None, tc_times=None,
+    """NpVidViewer
+    Stores information relating to a video to be able to easily display a video from a numpy array
+
+    Attributes
+    ----------
+    _remove_reflection : bool
+        Whether or not to remove the reflection from each frame while playing the video.
+    _array
+        Numpy array of thermal cam temps loaded from the file.
+    _speed : int
+        Delay between each frame in ms.
+    _window_name : str
+        Name of the window for the video to be displayed in.
+    _timestamps
+        Numpy array of the thermal camera timestamps.
+    _melt_pool_data
+        Numpy array of the melt pool data.
+    _mp_data_index : int
+        Current index of `_melt_pool_data` numpy array.
+    _lower_bounds
+        List of lower bounds of part. Used to remove the bottom reflection.
+    """
+    def __init__(self, filename: str, window_name="Video", melt_pool_data, tc_times=None,
                  remove_reflection=False, remove_lower=False):
+        """Create an NpVidViewer Object.
+
+        Parameters
+        ----------
+        file_name : str
+            Name of the numpy file that contains the thermal cam temps.
+        window_name : str
+            Name of the window that the video will be displayed in.
+        melt_pool_data : str
+            Name of the numpy file that contains the melt pool data.
+        tc_times : str
+            Name of the numpy file that contains the thermal camera timestamps.
+        remove_reflection : bool
+            Run the remove reflection function if true.
+        remove_lower : bool
+            Run the remove_lower reflection function if true.
+        """
         self._remove_reflection = remove_reflection
         self.remove_lower = remove_lower
         self._array = np.load(filename, mmap_mode='r', allow_pickle=True)
@@ -23,6 +62,12 @@ class NpVidViewer:
         self._lower_bounds = self.find_lower_bounds()
 
     def find_lower_bounds(self):
+        """Set docstring here.
+        
+        Returns
+        -------
+
+        """   
         #Compares x coordinates of current frame max and next frame max
         img_array = self.array
         i = 0
