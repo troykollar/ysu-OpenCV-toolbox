@@ -1,5 +1,8 @@
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+import os
+import matplotlib.animation as animation
 from reflection_remover import ReflectionRemover
 
 
@@ -140,6 +143,9 @@ class NpVidViewer:
         height = self.array[0].shape[0]
         width = self.array[0].shape[1]
         size = (width, height)
+        path = os.getcwd() + "/Video/"
+        fig = plt.figure()
+        imgs = []
         out = cv2.VideoWriter(filename,
                               cv2.VideoWriter_fourcc("f", "m", "p", "4"),
                               framerate, size)
@@ -153,6 +159,15 @@ class NpVidViewer:
                                          zero_level_threshold=180,
                                          max_temp_threshold=700)
 
+            im = plt.imshow(normalized_img, animated=True)
+            imgs.append([im])
+            """
+            plt.imsave(path + str(i),
+                       normalized_img,
+                       format='png',
+                       cmap='inferno')
+            """
+            """
             normalized_img = cv2.normalize(normalized_img, normalized_img, 0,
                                            255, cv2.NORM_MINMAX, cv2.CV_8UC1)
             normalized_img = cv2.applyColorMap(normalized_img,
@@ -161,7 +176,10 @@ class NpVidViewer:
             self.add_mp_data_to_img(normalized_img, i)
 
             out.write(normalized_img)
-
+        """
+        ani = animation.ArtistAnimation(fig, imgs, interval=1, blit=True)
+        ani.save("matplotlib_vid.mp4")
+        plt.show()
         out.release()
 
     @property
