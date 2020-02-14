@@ -22,4 +22,4 @@ VIEWER = NpVidViewer(
     remove_lower=True,
 )
 
-VIEWER.save_video()
+VIEWER.play_video(1)
