@@ -29,6 +29,9 @@ class ReflectionRemover:
         max_value = np.amax(img)
         max_value_location = np.where(img == max_value)
 
+        #TODO: improve bottom detection
+        #TODO: extend reflection removal all the way to edges.
+
         if max_value > max_temp_threshold:
             remove_to = max_value_location[0][0]
             while np.mean(img[remove_to - distance]) > zero_level_threshold:
