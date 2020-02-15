@@ -65,6 +65,7 @@ class NpVidViewer:
         self._mp_data_index = 0
         self.match_vid_to_meltpool()
         self._lower_bounds = self.find_lower_bounds()
+        self.max_temp = []
 
     def find_lower_bounds(self):
         """Find the lower bounds of the piece.
@@ -151,7 +152,9 @@ class NpVidViewer:
             if self.remove_reflection:
                 ReflectionRemover.remove(normalized_img,
                                          zero_level_threshold=180,
-                                         max_temp_threshold=700)
+                                         max_temp_threshold=700,
+                                         remove_lower=self._remove_lower,
+                                         lower_bounds=self.lower_bounds)
 
             normalized_img = cv2.normalize(normalized_img, normalized_img, 0,
                                            255, cv2.NORM_MINMAX, cv2.CV_8UC1)
@@ -280,6 +283,7 @@ class NpVidViewer:
             Numpy array of the updated image of the current frame.
         """
         img = self.array[frame]
+        self.max_temp.append(np.amax(self.array[frame]))
         normalized_img = img.copy()
         if self.remove_reflection:
             ReflectionRemover.remove(
@@ -346,6 +350,9 @@ class NpVidViewer:
             font_size,
             font_color,
         )
+        img = cv2.putText(img, "Max Temp: " + str(self.max_temp[frame]),
+                          (50, int((5 / 16) * img_height)), font, font_size,
+                          font_color)
 
     def play_video(self, speed=1):
         """Play the video.
