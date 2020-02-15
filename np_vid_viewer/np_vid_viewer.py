@@ -2,6 +2,8 @@ import cv2
 import numpy as np
 from reflection_remover import ReflectionRemover
 
+#TODO: Add option to highlight max temperature location in video
+
 
 class NpVidViewer:
     """NpVidViewer
