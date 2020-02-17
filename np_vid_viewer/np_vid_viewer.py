@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
 from reflection_remover import ReflectionRemover
 
 #TODO: Add option to highlight max temperature location in video
@@ -52,18 +54,22 @@ class NpVidViewer:
         remove_lower : bool
             Run the remove_lower reflection function if true.
         """
+        Tk().withdraw  #prevent tkinter from opening root window
+        self._array = np.load(
+            askopenfilename(title="Select thermal cam temperature data."),
+            mmap_mode="r",
+            allow_pickle=True)
+        self._timestamps = np.load(
+            askopenfilename(title="Select video timestamp data."),
+            allow_pickle=True)
+        self._melt_pool_data = np.load(
+            askopenfilename(title="Select meltpool data."), allow_pickle=True)
+
         self._remove_reflection = remove_reflection
         self._remove_lower = remove_lower
-        self._array = np.load(filename, mmap_mode="r", allow_pickle=True)
         self._speed = 1
         self._window_name = window_name
         self._num_frames = self.array.shape[0]
-        self._timestamps = np.load(tc_times, allow_pickle=True)
-        if melt_pool_data is not None:
-            self._melt_pool_data = np.load(melt_pool_data, allow_pickle=True)
-        else:
-            self._melt_pool_data = None
-
         self._mp_data_index = 0
         self.match_vid_to_meltpool()
         self._lower_bounds = self.find_lower_bounds()
