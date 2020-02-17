@@ -1,6 +1,8 @@
 """Utility to remove the heat reflection from an image"""
 import numpy as np
 
+#TODO: Remove side reflections
+
 
 class ReflectionRemover:
     def remove(img: np.ndarray,
