@@ -79,7 +79,7 @@ class NpVidViewer:
         """
         img_array = self.array
         i = 0
-        # Find the x and y value of the max temp
+        # Find the x and y value of the max temp of first frame
         max_x = np.where(img_array[0] == np.amax(img_array[0]))[1][0]
         max_y = np.where(img_array[0] == np.amax(img_array[0]))[0][0]
 
@@ -92,20 +92,25 @@ class NpVidViewer:
 
         # While the laser is moving to the right. (i.e. the next location > current location)
         while max_x < next_max_x:
-            max_x_locations.append(max_x)
-            max_y_locations.append(max_y)
+            max_x_locations.append([i, max_x])
+            max_y_locations.append([i, max_y])
             i = i + 1
             max_x = np.where(img_array[i] == np.amax(img_array[i]))[1][0]
             next_max_x = np.where(
                 img_array[i + 1] == np.amax(img_array[i + 1]))[1][0]
             max_y = np.where(img_array[i] == np.amax(img_array[i]))[0][0]
 
+        for frame in range(0, len(max_y_locations)):
+            while img_array[frame, max_y_locations[frame][1],
+                            max_x_locations[frame][1]] > 174:
+                max_y_locations[frame][1] += 1
+
         max_locations = []
         j = 0
-        for i in range(max_x_locations[0], max_x_locations[-1]):
-            if i > max_x_locations[j]:
+        for i in range(max_x_locations[0][1], max_x_locations[-1][1]):
+            if i > max_x_locations[j][1]:
                 j = j + 1
-            max_locations.append((i, max_y_locations[j]))
+            max_locations.append((i, max_y_locations[j][1]))
         return max_locations
 
     @property
@@ -292,7 +297,7 @@ class NpVidViewer:
                 normalized_img,
                 zero_level_threshold=180,
                 max_temp_threshold=700,
-                remove_lower=True,
+                remove_lower=self._remove_lower,
                 lower_bounds=self.lower_bounds,
             )
 
