@@ -313,7 +313,7 @@ class NpVidViewer:
         self.add_mp_data_to_img(normalized_img, frame)
         self.highlight_max_temp(frame, normalized_img)
 
-        #self.print_info(frame)
+        self.print_info(frame)
         return normalized_img
 
     def highlight_max_temp(self, frame, img):
