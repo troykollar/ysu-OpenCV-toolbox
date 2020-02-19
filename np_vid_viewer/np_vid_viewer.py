@@ -4,8 +4,6 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 from reflection_remover import ReflectionRemover
 
-#TODO: Add option to highlight max temperature location in video
-
 
 class NpVidViewer:
     """NpVidViewer
@@ -313,9 +311,16 @@ class NpVidViewer:
                                            cv2.COLORMAP_INFERNO)
 
         self.add_mp_data_to_img(normalized_img, frame)
+        self.highlight_max_temp(frame, normalized_img)
 
-        self.print_info(frame)
+        #self.print_info(frame)
         return normalized_img
+
+    def highlight_max_temp(self, frame, img):
+        max_temp = self.max_temp[frame]
+        max_temp_y = np.where(self.array[frame] == max_temp)[0][0]
+        max_temp_x = np.where(self.array[frame] == max_temp)[1][0]
+        img[max_temp_y, max_temp_x] = (255, 255, 255)
 
     def add_mp_data_to_img(self, img, frame):
         """Add meltpool data to the image.
