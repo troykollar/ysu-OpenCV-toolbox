@@ -1,8 +1,8 @@
 import cv2
 import numpy as np
+from tkinter import Tk
+from tkinter.filedialog import askopenfilename
 from reflection_remover import ReflectionRemover
-
-#TODO: Add option to highlight max temperature location in video
 
 
 class NpVidViewer:
@@ -52,18 +52,22 @@ class NpVidViewer:
         remove_lower : bool
             Run the remove_lower reflection function if true.
         """
+        Tk().withdraw  #prevent tkinter from opening root window
+        self._array = np.load(
+            askopenfilename(title="Select thermal cam temperature data."),
+            mmap_mode="r",
+            allow_pickle=True)
+        self._timestamps = np.load(
+            askopenfilename(title="Select video timestamp data."),
+            allow_pickle=True)
+        self._melt_pool_data = np.load(
+            askopenfilename(title="Select meltpool data."), allow_pickle=True)
+
         self._remove_reflection = remove_reflection
         self._remove_lower = remove_lower
-        self._array = np.load(filename, mmap_mode="r", allow_pickle=True)
         self._speed = 1
         self._window_name = window_name
         self._num_frames = self.array.shape[0]
-        self._timestamps = np.load(tc_times, allow_pickle=True)
-        if melt_pool_data is not None:
-            self._melt_pool_data = np.load(melt_pool_data, allow_pickle=True)
-        else:
-            self._melt_pool_data = None
-
         self._mp_data_index = 0
         self.match_vid_to_meltpool()
         self._lower_bounds = self.find_lower_bounds()
@@ -79,7 +83,7 @@ class NpVidViewer:
         """
         img_array = self.array
         i = 0
-        # Find the x and y value of the max temp
+        # Find the x and y value of the max temp of first frame
         max_x = np.where(img_array[0] == np.amax(img_array[0]))[1][0]
         max_y = np.where(img_array[0] == np.amax(img_array[0]))[0][0]
 
@@ -92,20 +96,25 @@ class NpVidViewer:
 
         # While the laser is moving to the right. (i.e. the next location > current location)
         while max_x < next_max_x:
-            max_x_locations.append(max_x)
-            max_y_locations.append(max_y)
+            max_x_locations.append([i, max_x])
+            max_y_locations.append([i, max_y])
             i = i + 1
             max_x = np.where(img_array[i] == np.amax(img_array[i]))[1][0]
             next_max_x = np.where(
                 img_array[i + 1] == np.amax(img_array[i + 1]))[1][0]
             max_y = np.where(img_array[i] == np.amax(img_array[i]))[0][0]
 
+        for frame in range(0, len(max_y_locations)):
+            while img_array[frame, max_y_locations[frame][1],
+                            max_x_locations[frame][1]] > 174:
+                max_y_locations[frame][1] += 1
+
         max_locations = []
         j = 0
-        for i in range(max_x_locations[0], max_x_locations[-1]):
-            if i > max_x_locations[j]:
+        for i in range(max_x_locations[0][1], max_x_locations[-1][1]):
+            if i > max_x_locations[j][1]:
                 j = j + 1
-            max_locations.append((i, max_y_locations[j]))
+            max_locations.append((i, max_y_locations[j][1]))
         return max_locations
 
     @property
@@ -292,7 +301,7 @@ class NpVidViewer:
                 normalized_img,
                 zero_level_threshold=180,
                 max_temp_threshold=700,
-                remove_lower=True,
+                remove_lower=self._remove_lower,
                 lower_bounds=self.lower_bounds,
             )
 
@@ -302,9 +311,16 @@ class NpVidViewer:
                                            cv2.COLORMAP_INFERNO)
 
         self.add_mp_data_to_img(normalized_img, frame)
+        self.highlight_max_temp(frame, normalized_img)
 
         self.print_info(frame)
         return normalized_img
+
+    def highlight_max_temp(self, frame, img):
+        max_temp = self.max_temp[frame]
+        max_temp_y = np.where(self.array[frame] == max_temp)[0][0]
+        max_temp_x = np.where(self.array[frame] == max_temp)[1][0]
+        img[max_temp_y, max_temp_x] = (255, 255, 255)
 
     def add_mp_data_to_img(self, img, frame):
         """Add meltpool data to the image.

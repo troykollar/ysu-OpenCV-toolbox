@@ -1,6 +1,8 @@
 """Utility to remove the heat reflection from an image"""
 import numpy as np
 
+#TODO: Remove side reflections
+
 
 class ReflectionRemover:
     def remove(img: np.ndarray,
@@ -29,9 +31,6 @@ class ReflectionRemover:
         max_value = np.amax(img)
         max_value_location = np.where(img == max_value)
 
-        #TODO: improve bottom detection
-        #TODO: extend reflection removal all the way to edges.
-
         if max_value > max_temp_threshold:
             remove_to = max_value_location[0][0]
             while np.mean(img[remove_to - distance]) > zero_level_threshold:
@@ -49,3 +48,7 @@ class ReflectionRemover:
                 x = lower_bounds[i][0]
                 y = lower_bounds[i][1]
                 img[y:, x] = min_value
+                if i == 0:
+                    img[y:, :x] = min_value
+                elif i == len(lower_bounds) - 1:
+                    img[y:, x:] = min_value
