@@ -1,0 +1,3 @@
+[submodule "vid_viewer_test/np_vid_viewer"]
+	path = vid_viewer_test/np_vid_viewer
+	url = https://github.com/troykollar/np_vid_viewer.git
